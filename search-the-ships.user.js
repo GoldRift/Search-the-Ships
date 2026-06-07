@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Search the Ships
 // @namespace    search-the-ships
-// @version      1.10.0
+// @version      1.10.1
 // @description  Adds a beautifully designed button to book-related websites to search the current book title on various archives, with a centralized status indicator and built-in settings.
 // @author       Delaxy
 // @match        https://thegreatestbooks.org/*
@@ -296,6 +296,18 @@
             name: "Advanced Search",
             base: "https://audiobookbay.lu/",
             extra: "tt=1",
+          },
+        ],
+      },
+      Mobilism: {
+        queryKey: "keywords",
+        separator: "&",
+        encodingType: "query",
+        urls: [
+          {
+            name: "Audiobooks Forum",
+            base: "https://forum.mobilism.org/search.php",
+            extra: "fid[]=124&sr=topics&sf=titleonly",
           },
         ],
       },
