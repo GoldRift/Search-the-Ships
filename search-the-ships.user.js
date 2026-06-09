@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Search the Ships
 // @namespace    search-the-ships
-// @version      1.10.1
+// @version      1.11.0
 // @description  Adds a beautifully designed button to book-related websites to search the current book title on various archives, with a centralized status indicator and built-in settings.
 // @author       Delaxy
 // @match        https://thegreatestbooks.org/*
@@ -296,6 +296,30 @@
             name: "Advanced Search",
             base: "https://audiobookbay.lu/",
             extra: "tt=1",
+          },
+        ],
+      },
+      "MyAnonaMouse": {
+        queryKey: "tor[text]",
+        separator: "&",
+        encodingType: "query",
+        urls: [
+          {
+            name: "Preset Search Settings",
+            base: "https://www.myanonamouse.net/tor/browse.php",
+            extra: "",
+          },
+          {
+            name: "Default Audiobook Search",
+            base: "https://www.myanonamouse.net/tor/browse.php",
+            extra:
+              "&tor[srchIn][title]=true&tor[srchIn][author]=true&tor[srchIn][series]=true&tor[searchType]=all&tor[searchIn]=torrents&tor[cat][]=39&tor[cat][]=49&tor[cat][]=50&tor[cat][]=83&tor[cat][]=51&tor[cat][]=97&tor[cat][]=40&tor[cat][]=41&tor[cat][]=106&tor[cat][]=42&tor[cat][]=52&tor[cat][]=98&tor[cat][]=54&tor[cat][]=55&tor[cat][]=43&tor[cat][]=99&tor[cat][]=84&tor[cat][]=44&tor[cat][]=56&tor[cat][]=45&tor[cat][]=57&tor[cat][]=85&tor[cat][]=87&tor[cat][]=119&tor[cat][]=88&tor[cat][]=58&tor[cat][]=59&tor[cat][]=46&tor[cat][]=47&tor[cat][]=53&tor[cat][]=89&tor[cat][]=100&tor[cat][]=108&tor[cat][]=48&tor[cat][]=111&tor[cat][]=0&tor[browseFlagsHideVsShow]=0&tor[unit]=1&tor[sortType]=default&tor[startNumber]=0&thumbnail=true",
+          },
+          {
+            name: "Default eBook Search",
+            base: "https://www.myanonamouse.net/tor/browse.php",
+            extra:
+              "&tor[srchIn][title]=true&tor[srchIn][author]=true&tor[srchIn][series]=true&tor[searchType]=all&tor[searchIn]=torrents&tor[cat][]=60&tor[cat][]=71&tor[cat][]=72&tor[cat][]=90&tor[cat][]=61&tor[cat][]=73&tor[cat][]=101&tor[cat][]=62&tor[cat][]=63&tor[cat][]=107&tor[cat][]=64&tor[cat][]=74&tor[cat][]=102&tor[cat][]=76&tor[cat][]=77&tor[cat][]=65&tor[cat][]=103&tor[cat][]=115&tor[cat][]=91&tor[cat][]=66&tor[cat][]=78&tor[cat][]=67&tor[cat][]=79&tor[cat][]=80&tor[cat][]=92&tor[cat][]=118&tor[cat][]=94&tor[cat][]=120&tor[cat][]=95&tor[cat][]=81&tor[cat][]=82&tor[cat][]=68&tor[cat][]=69&tor[cat][]=75&tor[cat][]=96&tor[cat][]=104&tor[cat][]=109&tor[cat][]=70&tor[cat][]=112&tor[cat][]=0&tor[browseFlagsHideVsShow]=1&tor[unit]=1&tor[sortType]=default&tor[startNumber]=0&thumbnail=true",
           },
         ],
       },

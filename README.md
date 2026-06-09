@@ -38,6 +38,7 @@ This script works on the following sites:
 #### 🎧 Audiobooks
 
 1. **AudiobookBay**: Search for audiobook torrents
+2. **MyAnonaMouse**: Search for audiobooks and ebooks via torrents
 
 Each site links directly to the search results for the extracted book title.
 
