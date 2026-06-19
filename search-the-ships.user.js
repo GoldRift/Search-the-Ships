@@ -244,6 +244,7 @@
   // ================================================================
 
   let scriptStarted = false;
+  let audiobookConfigKeys = {};
   let UI_CONFIG = {
     position: { ...DEFAULT_UI_CONFIG.position },
     buttonColors: { ...DEFAULT_UI_CONFIG.buttonColors },
@@ -301,8 +302,9 @@
     return Number.isFinite(parsed) ? Math.max(0, parsed) : undefined;
   }
 
-  function isSiteEnabled(siteName) {
-    const value = readConfigValue(siteConfigKey(siteName));
+  function isSiteEnabled(siteName, configKey) {
+    const key = typeof configKey === "string" ? configKey : siteConfigKey(siteName);
+    const value = readConfigValue(key);
     return value !== false && value !== "false" && value !== "no";
   }
 
@@ -354,19 +356,44 @@
     }
 
     const engineFields = {};
+    let engineIdx = 0;
     for (const siteName in SEARCH_SITES) {
-      engineFields[siteConfigKey(siteName)] = {
+      const field = {
         label: siteName,
         type: "checkbox",
         default: true,
       };
+      if (engineIdx === 0) {
+        field.section = [
+          "Search Engines (Books)",
+          "Toggle which book search engines appear in the menu",
+        ];
+      }
+      engineFields[siteConfigKey(siteName)] = field;
+      engineIdx++;
     }
+
+    audiobookConfigKeys = {};
+    let audioIdx = 0;
     for (const siteName in AUDIOBOOK_SITES) {
-      engineFields[siteConfigKey(siteName)] = {
-        label: "Audiobook: " + siteName,
+      const baseKey = siteConfigKey(siteName);
+      const isDuplicate = !!engineFields[baseKey];
+      const field = {
+        label: isDuplicate ? siteName + " (Audiobooks)" : siteName,
         type: "checkbox",
         default: true,
       };
+      if (audioIdx === 0) {
+        field.section = [
+          "Search Engines (Audiobooks)",
+          "Toggle which audiobook search engines appear in the menu",
+        ];
+      }
+      // Use unique config key if site name collides with SEARCH_SITES (e.g. Mobilism in both)
+      const key = isDuplicate ? baseKey + "_audiobook" : baseKey;
+      audiobookConfigKeys[siteName] = key;
+      engineFields[key] = field;
+      audioIdx++;
     }
 
     gmc = new GM_config({
@@ -375,6 +402,10 @@
       fields: {
         buttonVerticalPosition: {
           label: "Vertical position",
+          section: [
+            "Button Position",
+            "Control where the search button appears on the page",
+          ],
           type: "select",
           options: ["top", "bottom"],
           default: DEFAULT_VERTICAL_POSITION,
@@ -399,6 +430,10 @@
         },
         buttonColorStart: {
           label: "Gradient start",
+          section: [
+            "Button Appearance",
+            "Customize colors and size of the search button",
+          ],
           type: "text",
           default: DEFAULT_UI_CONFIG.buttonColors.start,
         },
@@ -790,7 +825,7 @@
     return siteDiv;
   }
 
-  function buildDropdownSection(headerText, siteMap, bookTitle) {
+  function buildDropdownSection(headerText, siteMap, bookTitle, keyMap) {
     const fragment = document.createDocumentFragment();
 
     const header = document.createElement("div");
@@ -798,7 +833,9 @@
     header.innerText = headerText;
     fragment.appendChild(header);
 
-    for (const siteName of Object.keys(siteMap).filter(isSiteEnabled)) {
+    for (const siteName of Object.keys(siteMap)) {
+      const configKey = keyMap?.[siteName] || siteConfigKey(siteName);
+      if (!isSiteEnabled(siteName, configKey)) continue;
       fragment.appendChild(
         buildSiteItem(siteName, siteMap[siteName], bookTitle),
       );
@@ -828,7 +865,7 @@
         dropdown.appendChild(divider);
       }
       dropdown.appendChild(
-        buildDropdownSection("🎧 Audiobooks", AUDIOBOOK_SITES, bookTitle),
+        buildDropdownSection("🎧 Audiobooks", AUDIOBOOK_SITES, bookTitle, audiobookConfigKeys),
       );
     }
 
