@@ -60,7 +60,7 @@ Each site links directly to the search results for the extracted book title.
 
 ## Author
 
-Script created by Delaxy.
+Script created by GoldRift.
 
 ## License
 
