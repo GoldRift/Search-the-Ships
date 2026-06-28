@@ -68,7 +68,7 @@ MIT License - feel free to use, modify, and distribute.
 
 ## Contributing
 
-If you find bugs or have suggestions, please report via the GreasyFork feedback
+If you find bugs or have suggestions, please report via [GreasyFork feedback](https://greasyfork.org/en/scripts/553077-search-the-ships/feedback) or [GitHub Issues](https://github.com/GoldRift/Search-the-Ships/issues)
 
 ## Disclaimer
 
