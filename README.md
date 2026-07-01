@@ -73,3 +73,6 @@ If you find bugs or have suggestions, please report via [GreasyFork feedback](ht
 ## Disclaimer
 
 This tool is for educational and research purposes. Respect copyright laws and use licensed content where appropriate.
+
+<img width="1920" height="913" alt="Screenshot_20260625_170919" src="https://github.com/user-attachments/assets/d204d3af-ce87-4ffc-ba1d-ba09e89163bc" />
+
