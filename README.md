@@ -32,13 +32,14 @@ This script works on the following sites:
 
 1. **Anna's Archive**: Searches across multiple mirrors for a wide range of books and documents.
 2. **Z-Library**: Access to a large collection of ebooks with various domain mirrors.
-3. **Mobilism**: A forum for mobile ebooks and audiobooks.
+3. **Mobilism**: A forum for ebooks.
 4. **Library Genesis**: Known for academic and general books.
 
 #### 🎧 Audiobooks
 
 1. **AudiobookBay**: Search for audiobook torrents
 2. **MyAnonaMouse**: Search for audiobooks and ebooks via torrents
+3. **Mobilism**: A forum for audiobooks.
 
 Each site links directly to the search results for the extracted book title.
 
