@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Search the Ships
 // @namespace    search-the-ships
-// @version      1.11.3
+// @version      1.11.4
 // @description  Adds a beautifully designed button to book-related websites to search the current book title on various archives, with a centralized status indicator and built-in settings.
 // @author       Delaxy
 // @match        https://thegreatestbooks.org/*
@@ -115,17 +115,17 @@
       urls: [
         {
           name: "All Files",
-          base: "https://articles.sk/s/",
+          base: "hhttps://z-library.sk/s/",
           extra: "",
         },
         {
           name: "EPUBs",
-          base: "https://articles.sk/s/",
+          base: "https://z-library.sk/s/",
           extra: "extensions[]=EPUB",
         },
         {
           name: "PDFs",
-          base: "https://articles.sk/s/",
+          base: "https://z-library.sk/s/",
           extra: "extensions[]=PDF",
         },
       ],
