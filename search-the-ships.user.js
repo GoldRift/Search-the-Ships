@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Search the Ships
 // @namespace    search-the-ships
-// @version      1.11.4
+// @version      1.12.0
 // @description  Adds a beautifully designed button to book-related websites to search the current book title on various archives, with a centralized status indicator and built-in settings.
 // @author       Delaxy
 // @match        https://thegreatestbooks.org/*
@@ -245,6 +245,7 @@
 
   let scriptStarted = false;
   let audiobookConfigKeys = {};
+  let audiobookUrlConfigKeys = {};
   let UI_CONFIG = {
     position: { ...DEFAULT_UI_CONFIG.position },
     buttonColors: { ...DEFAULT_UI_CONFIG.buttonColors },
@@ -265,6 +266,10 @@
 
   function siteConfigKey(siteName) {
     return "enable_" + siteName.replace(/[^a-zA-Z0-9]+/g, "_").replace(/_$/, "");
+  }
+
+  function urlConfigKey(siteName) {
+    return "url_" + siteName.replace(/[^a-zA-Z0-9]+/g, "_").replace(/_$/, "");
   }
 
   function cleanTitle(title) {
@@ -358,6 +363,7 @@
     const engineFields = {};
     let engineIdx = 0;
     for (const siteName in SEARCH_SITES) {
+      const key = siteConfigKey(siteName);
       const field = {
         label: siteName,
         type: "checkbox",
@@ -369,11 +375,12 @@
           "Toggle which book search engines appear in the menu",
         ];
       }
-      engineFields[siteConfigKey(siteName)] = field;
+      engineFields[key] = field;
       engineIdx++;
     }
 
     audiobookConfigKeys = {};
+    audiobookUrlConfigKeys = {};
     let audioIdx = 0;
     for (const siteName in AUDIOBOOK_SITES) {
       const baseKey = siteConfigKey(siteName);
@@ -393,7 +400,40 @@
       const key = isDuplicate ? baseKey + "_audiobook" : baseKey;
       audiobookConfigKeys[siteName] = key;
       engineFields[key] = field;
+
+      audiobookUrlConfigKeys[siteName] = "url_" + key.slice("enable_".length);
       audioIdx++;
+    }
+
+    // Domain overrides live in their own section so the search engine
+    // checkboxes stay compact.
+    const domainSection = [
+      "Search Domains",
+      "Override a search engine's domain (blank = script default)",
+    ];
+    let domainIdx = 0;
+    const addDomainField = (label, key) => {
+      const urlField = {
+        label: label,
+        title: "Leave blank to use the script's default domain",
+        type: "text",
+        default: "",
+      };
+      if (domainIdx === 0) urlField.section = domainSection;
+      engineFields[key] = urlField;
+      domainIdx++;
+    };
+
+    for (const siteName in SEARCH_SITES) {
+      addDomainField(siteName + " domain", urlConfigKey(siteName));
+    }
+    for (const siteName in AUDIOBOOK_SITES) {
+      const baseKey = siteConfigKey(siteName);
+      const isDuplicate = !!engineFields[baseKey];
+      addDomainField(
+        (isDuplicate ? siteName + " (Audiobooks)" : siteName) + " domain",
+        audiobookUrlConfigKeys[siteName],
+      );
     }
 
     gmc = new GM_config({
@@ -460,6 +500,9 @@
           syncUIConfig();
           startScript();
         },
+        open: function (frameDoc) {
+          applyDomainPlaceholders(frameDoc);
+        },
         save: function () {
           window.location.reload();
         },
@@ -471,7 +514,52 @@
   // URL Construction
   // ================================================================
 
-  function constructSearchUrl(siteConfig, urlObject, bookTitle) {
+  function defaultDomainFor(siteName) {
+    const site = SEARCH_SITES[siteName] || AUDIOBOOK_SITES[siteName];
+    const base = site && site.urls && site.urls[0] ? site.urls[0].base : "";
+    try {
+      return new URL(base).hostname;
+    } catch (e) {
+      return "";
+    }
+  }
+
+  // GM_config text fields have no placeholder support, so attach them once
+  // the settings panel renders (the built-in "Reset to defaults" mutates the
+  // input in place and leaves the placeholder intact).
+  function applyDomainPlaceholders(doc) {
+    const root = doc || document;
+    for (const siteName in SEARCH_SITES) {
+      const input = root.getElementById(
+        GM_CONFIG_ID + "_field_" + urlConfigKey(siteName),
+      );
+      if (input) input.placeholder = defaultDomainFor(siteName);
+    }
+    for (const siteName in AUDIOBOOK_SITES) {
+      const input = root.getElementById(
+        GM_CONFIG_ID + "_field_" + audiobookUrlConfigKeys[siteName],
+      );
+      if (input) input.placeholder = defaultDomainFor(siteName);
+    }
+  }
+
+  function resolveBaseUrl(siteName, base) {
+    const custom = readConfigValue(urlConfigKey(siteName));
+    if (!custom) return base;
+    const candidate = /^[a-z][a-z0-9+.-]*:\/\//i.test(custom)
+      ? custom
+      : "https://" + custom;
+    let origin;
+    try {
+      origin = new URL(candidate).origin;
+    } catch (e) {
+      return base;
+    }
+    if (!origin || origin === "null") return base;
+    return base.replace(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i, origin);
+  }
+
+  function constructSearchUrl(siteConfig, base, urlObject, bookTitle) {
     const normalizedTitle = normalizeSearchTitle(bookTitle);
     const processedTitle =
       siteConfig.encodingType === "path"
@@ -480,12 +568,12 @@
 
     let finalUrl;
     if (!siteConfig.queryKey) {
-      finalUrl = `${urlObject.base}${processedTitle}`;
+      finalUrl = `${base}${processedTitle}`;
       if (urlObject.extra) {
         finalUrl += `${siteConfig.separator}${urlObject.extra}`;
       }
     } else {
-      finalUrl = `${urlObject.base}?${siteConfig.queryKey}=${processedTitle}`;
+      finalUrl = `${base}?${siteConfig.queryKey}=${processedTitle}`;
       if (urlObject.extra) {
         finalUrl += `${siteConfig.separator}${urlObject.extra}`;
       }
@@ -632,8 +720,8 @@
         position: absolute;
         left: 50%;
         ${isTop
-          ? `top: calc(100% + ${s.menuOffset}px);`
-          : `bottom: calc(100% + ${s.menuOffset}px);`}
+        ? `top: calc(100% + ${s.menuOffset}px);`
+        : `bottom: calc(100% + ${s.menuOffset}px);`}
         background-color: rgba(255, 255, 255, 0.85);
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
@@ -647,8 +735,8 @@
         box-sizing: border-box;
         opacity: 0;
         ${isTop
-          ? `transform: translate(-50%, -${s.menuOffset}px);`
-          : `transform: translate(-50%, ${s.menuOffset}px);`}
+        ? `transform: translate(-50%, -${s.menuOffset}px);`
+        : `transform: translate(-50%, ${s.menuOffset}px);`}
         transition: opacity 0.2s ease, transform 0.2s ease;
         pointer-events: none;
       }
@@ -683,8 +771,8 @@
         position: absolute;
         top: -${s.submenuAnchorOffset}px;
         ${isLeft
-          ? `left: calc(100% + ${s.submenuOffset}px); right: auto;`
-          : `right: calc(100% + ${s.submenuOffset}px); left: auto;`}
+        ? `left: calc(100% + ${s.submenuOffset}px); right: auto;`
+        : `right: calc(100% + ${s.submenuOffset}px); left: auto;`}
         background-color: rgba(255, 255, 255, 0.85);
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
@@ -696,8 +784,8 @@
         padding: ${s.ddPadding}px;
         opacity: 0;
         ${isLeft
-          ? `transform: translateX(-${s.submenuOffset}px);`
-          : `transform: translateX(${s.submenuOffset}px);`}
+        ? `transform: translateX(-${s.submenuOffset}px);`
+        : `transform: translateX(${s.submenuOffset}px);`}
         transition: opacity 0.2s ease, transform 0.2s ease;
         pointer-events: none;
       }
@@ -787,11 +875,13 @@
     if (siteConfig.urls && siteConfig.urls.length > 0) {
       const statusSpan = document.createElement("span");
       statusSpan.className = "sts-ship-status sts-pending";
-      statusSpan.dataset.url = siteConfig.urls[0].base;
+      statusSpan.dataset.url = resolveBaseUrl(siteName, siteConfig.urls[0].base);
       statusSpan.title = "Checking...";
       siteDiv.appendChild(statusSpan);
 
-      const baseUrl = new URL(siteConfig.urls[0].base).origin;
+      const baseUrl = new URL(
+        resolveBaseUrl(siteName, siteConfig.urls[0].base),
+      ).origin;
       fetch(baseUrl, { method: "HEAD", mode: "no-cors" })
         .then(() => {
           statusSpan.classList.remove("sts-pending");
@@ -810,7 +900,12 @@
 
     if (siteConfig.urls) {
       siteConfig.urls.forEach((urlObject) => {
-        const finalUrl = constructSearchUrl(siteConfig, urlObject, bookTitle);
+        const finalUrl = constructSearchUrl(
+          siteConfig,
+          resolveBaseUrl(siteName, urlObject.base),
+          urlObject,
+          bookTitle,
+        );
         const link = document.createElement("a");
         link.href = finalUrl;
         link.target = "_blank";
