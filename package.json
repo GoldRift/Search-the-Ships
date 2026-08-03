@@ -1,0 +1,14 @@
+{
+  "name": "search-the-ships",
+  "version": "1.12.0",
+  "private": true,
+  "type": "module",
+  "description": "Userscript that searches book titles across archives. Dev harness only — the script itself has no build step.",
+  "scripts": {
+    "sync-version": "node scripts/sync-version.mjs",
+    "test": "npm run sync-version && node --check search-the-ships.user.js && node --test"
+  },
+  "devDependencies": {
+    "jsdom": "^30.0.1"
+  }
+}
