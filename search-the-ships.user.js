@@ -3,7 +3,7 @@
 // @namespace    search-the-ships
 // @version      1.12.0
 // @description  Adds a beautifully designed button to book-related websites to search the current book title on various archives, with a centralized status indicator and built-in settings.
-// @author       Delaxy
+// @author       GoldRift
 // @match        https://thegreatestbooks.org/*
 // @match        https://goodreads.com/*
 // @match        https://www.amazon.tld/*
