@@ -75,5 +75,5 @@ If you find bugs or have suggestions, please report via [GreasyFork feedback](ht
 
 This tool is for educational and research purposes. Respect copyright laws and use licensed content where appropriate.
 
-<img width="1916" height="923" alt="Screenshot From 2026-08-27 13-01-03" src="https://github.com/user-attachments/assets/8c723cb7-ee18-4183-90df-1e4566699232" />
+<img width="1920" height="966" alt="Screenshot_20261028_213421" src="https://github.com/user-attachments/assets/c6001943-ce4f-4f3d-bada-4a0711d6b2c7" />
 
