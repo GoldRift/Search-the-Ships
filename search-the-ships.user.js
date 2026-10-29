@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Search the Ships
 // @namespace    search-the-ships
-// @version      1.12.1
-// @description  Adds a beautifully designed button to book-related websites to search the current book title on various archives, with a centralized status indicator and built-in settings.
+// @version      1.13.0
+// @description  Adds a small, unobtrusive button to book-related websites to search the current book title on various archives, with status indicators and built-in settings.
 // @author       GoldRift
 // @match        https://thegreatestbooks.org/*
 // @match        https://www.goodreads.com/*
@@ -40,12 +40,16 @@
       left: "auto",
     },
     buttonColors: {
-      start: "#5A67D8",
-      end: "#9F7AEA",
-      text: "#FFFFFF",
+      start: "#FFFFFF",
+      end: "#F4F5F7",
+      text: "#374151",
     },
     buttonScale: 1,
   };
+  // Bumped whenever saved appearance settings must be reset to the new defaults
+  // (the palette → neutral restyle is revision 2). Stored in the hidden
+  // `configRevision` field so the reset happens exactly once per install.
+  const CONFIG_REVISION = 2;
 
   // ================================================================
   // Site Data: Title Extractors
@@ -246,6 +250,7 @@
   let scriptStarted = false;
   let audiobookConfigKeys = {};
   let audiobookUrlConfigKeys = {};
+  let skipSaveReload = false;
   let UI_CONFIG = {
     position: { ...DEFAULT_UI_CONFIG.position },
     buttonColors: { ...DEFAULT_UI_CONFIG.buttonColors },
@@ -311,6 +316,28 @@
     const key = typeof configKey === "string" ? configKey : siteConfigKey(siteName);
     const value = readConfigValue(key);
     return value !== false && value !== "false" && value !== "no";
+  }
+
+  function migrateAppearanceSettings() {
+    if (typeof gmc === "undefined" || typeof gmc.set !== "function") return;
+
+    const revision = Number(readConfigValue("configRevision")) || 0;
+    if (revision >= CONFIG_REVISION) return;
+
+    // The button was redesigned (collapsed icon + neutral palette), so colors
+    // saved against the old gradient no longer fit. Reset them once; anything
+    // the user changes afterwards is kept, because the revision is stamped.
+    gmc.set("buttonColorStart", DEFAULT_UI_CONFIG.buttonColors.start);
+    gmc.set("buttonColorEnd", DEFAULT_UI_CONFIG.buttonColors.end);
+    gmc.set("buttonColorText", DEFAULT_UI_CONFIG.buttonColors.text);
+    gmc.set("configRevision", CONFIG_REVISION);
+
+    if (typeof gmc.save === "function") {
+      // Persist the new values; the save handler below would otherwise reload
+      // the page on every first visit after upgrading.
+      skipSaveReload = true;
+      gmc.save();
+    }
   }
 
   function syncUIConfig() {
@@ -469,7 +496,7 @@
           default: DEFAULT_HORIZONTAL_MARGIN,
         },
         buttonColorStart: {
-          label: "Gradient start",
+          label: "Button background",
           section: [
             "Button Appearance",
             "Customize colors and size of the search button",
@@ -478,7 +505,7 @@
           default: DEFAULT_UI_CONFIG.buttonColors.start,
         },
         buttonColorEnd: {
-          label: "Gradient end",
+          label: "Button tint",
           type: "text",
           default: DEFAULT_UI_CONFIG.buttonColors.end,
         },
@@ -493,10 +520,16 @@
           min: 0.5,
           default: 1,
         },
+        // Bumped by migrateAppearanceSettings(); never shown in the panel.
+        configRevision: {
+          type: "hidden",
+          default: 0,
+        },
         ...engineFields,
       },
       events: {
         init: function () {
+          migrateAppearanceSettings();
           syncUIConfig();
           startScript();
         },
@@ -504,6 +537,10 @@
           applyDomainPlaceholders(frameDoc);
         },
         save: function () {
+          if (skipSaveReload) {
+            skipSaveReload = false;
+            return;
+          }
           window.location.reload();
         },
       },
@@ -606,13 +643,14 @@
     const round = (n) => Math.round(n * scale);
     const minRound = (n, min) => Math.max(min, Math.round(n * scale));
     return {
-      pad: { top: round(12), right: round(14), bottom: round(12), left: round(18) },
-      gap: round(14),
-      fontSize: round(16),
-      borderRadius: round(50),
-      svgSize: round(20),
-      settingsBtnSize: round(30),
-      settingsSvgSize: round(16),
+      buttonHeight: minRound(34, 24),
+      buttonPadH: round(7),
+      gap: round(6),
+      labelFontSize: minRound(13, 11),
+      borderRadius: round(10),
+      svgSize: round(18),
+      settingsRowFontSize: minRound(13, 11),
+      settingsSvgSize: round(14),
       menuOffset: round(10),
       submenuOffset: round(8),
       submenuAnchorOffset: round(6),
@@ -642,12 +680,10 @@
     const isLeft = isLeftAnchored();
 
     const styles = `
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
-
       .sts-container {
         position: fixed;
         z-index: 10000;
-        font-family: 'Inter', sans-serif;
+        font-family: inherit;
         top: ${UI_CONFIG.position.top};
         right: ${UI_CONFIG.position.right};
         bottom: ${UI_CONFIG.position.bottom};
@@ -657,17 +693,21 @@
       .sts-button {
         background: linear-gradient(135deg, ${UI_CONFIG.buttonColors.start} 0%, ${UI_CONFIG.buttonColors.end} 100%);
         color: ${UI_CONFIG.buttonColors.text};
-        padding: ${s.pad.top}px ${s.pad.right}px ${s.pad.bottom}px ${s.pad.left}px;
-        border: none;
+        height: ${s.buttonHeight}px;
+        min-width: ${s.buttonHeight}px;
+        padding: 0 ${s.buttonPadH}px;
+        border: 1px solid rgba(15, 23, 42, 0.1);
         border-radius: ${s.borderRadius}px;
+        box-sizing: border-box;
         cursor: default;
-        font-size: ${s.fontSize}px;
-        font-weight: 600;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        transition: all 0.3s ease;
+        font-size: ${s.labelFontSize}px;
+        font-weight: 500;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
         outline: none;
         display: flex;
         align-items: center;
+        justify-content: center;
         gap: ${s.gap}px;
         position: relative;
         overflow: visible;
@@ -676,49 +716,77 @@
       .sts-button-main {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
+        gap: 0;
         white-space: nowrap;
       }
 
-      .sts-settings-button {
-        border: none;
-        background: rgba(255, 255, 255, 0.18);
-        color: inherit;
-        width: ${s.settingsBtnSize}px;
-        height: ${s.settingsBtnSize}px;
-        border-radius: 999px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        flex-shrink: 0;
-        transition: transform 0.2s ease, background-color 0.2s ease;
+      .sts-button-label {
+        max-width: 0;
+        margin-left: 0;
+        opacity: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        font-size: ${s.labelFontSize}px;
+        line-height: 1.2;
+        transition: max-width 0.18s ease, margin-left 0.18s ease, opacity 0.12s ease;
       }
 
-      .sts-settings-button:hover {
-        transform: scale(1.05);
-        background: rgba(255, 255, 255, 0.28);
+      .sts-button:hover .sts-button-label {
+        max-width: 160px;
+        margin-left: ${s.gap}px;
+        opacity: 1;
       }
 
       .sts-button:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 7px 25px rgba(0, 0, 0, 0.25);
+        border-color: rgba(15, 23, 42, 0.18);
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.1);
       }
 
       .sts-button svg {
         width: ${s.svgSize}px;
         height: ${s.svgSize}px;
         fill: currentColor;
+        flex-shrink: 0;
+      }
+
+      .sts-settings-button {
+        border: none;
+        background: transparent;
+        color: #6B7280;
+        width: 100%;
+        padding: ${s.sitePadV}px ${s.sitePadH}px;
+        border-radius: 6px;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: ${s.gap}px;
+        font-family: inherit;
+        font-size: ${s.settingsRowFontSize}px;
+        font-weight: 500;
+        text-align: left;
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: background-color 0.15s ease, color 0.15s ease;
+      }
+
+      .sts-settings-button:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+        color: #374151;
       }
 
       .sts-settings-button svg {
         width: ${s.settingsSvgSize}px;
         height: ${s.settingsSvgSize}px;
+        fill: currentColor;
+        flex-shrink: 0;
       }
 
       .sts-dropdown {
         position: absolute;
-        left: 50%;
+        ${isLeft
+        ? `left: 0; right: auto;`
+        : `right: 0; left: auto;`}
         ${isTop
         ? `top: calc(100% + ${s.menuOffset}px);`
         : `bottom: calc(100% + ${s.menuOffset}px);`}
@@ -735,8 +803,8 @@
         box-sizing: border-box;
         opacity: 0;
         ${isTop
-        ? `transform: translate(-50%, -${s.menuOffset}px);`
-        : `transform: translate(-50%, ${s.menuOffset}px);`}
+        ? `transform: translateY(-${s.menuOffset}px);`
+        : `transform: translateY(${s.menuOffset}px);`}
         transition: opacity 0.2s ease, transform 0.2s ease;
         pointer-events: none;
       }
@@ -744,7 +812,7 @@
       .sts-dropdown.sts-visible {
         display: block;
         opacity: 1;
-        transform: translate(-50%, 0);
+        transform: translateY(0);
         pointer-events: auto;
       }
 
@@ -813,8 +881,8 @@
       }
 
       .sts-link:hover {
-        background-color: rgba(90, 103, 216, 0.1);
-        color: #5A67D8;
+        background-color: rgba(0, 0, 0, 0.05);
+        color: #111827;
       }
 
       .sts-ship-status {
@@ -964,18 +1032,35 @@
       );
     }
 
+    if (dropdown.children.length > 0) {
+      const settingsDivider = document.createElement("div");
+      settingsDivider.className = "sts-section-divider sts-settings-divider";
+      dropdown.appendChild(settingsDivider);
+    }
+
+    dropdown.appendChild(buildSettingsRow());
+
     return dropdown;
+  }
+
+  function buildSettingsRow() {
+    const settingsButton = document.createElement("button");
+    settingsButton.type = "button";
+    settingsButton.className = "sts-settings-button";
+    settingsButton.setAttribute("aria-label", "Open Search the Ships settings");
+    settingsButton.innerHTML = [
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19.14 12.94a7.43 7.43 0 0 0 .05-.94 7.43 7.43 0 0 0-.05-.94l2.03-1.58a.5.5 0 0 0 .12-.63l-1.92-3.32a.5.5 0 0 0-.61-.22l-2.39.96a7.1 7.1 0 0 0-1.63-.94l-.36-2.54A.5.5 0 0 0 13.9 2h-3.8a.5.5 0 0 0-.49.41l-.36 2.54c-.58.22-1.12.52-1.63.94l-2.39-.96a.5.5 0 0 0-.61.22L2.7 8.97a.5.5 0 0 0 .12.63l2.03 1.58a7.43 7.43 0 0 0-.05.94c0 .32.02.63.05.94l-2.03 1.58a.5.5 0 0 0-.12.63l1.92 3.32a.5.5 0 0 0 .61.22l2.39-.96c.5.4 1.05.73 1.63.94l.36 2.54a.5.5 0 0 0 .49.41h3.8a.5.5 0 0 0 .49-.41l.36-2.54c.58-.22 1.12-.52 1.63-.94l2.39.96a.5.5 0 0 0 .61-.22l1.92-3.32a.5.5 0 0 0-.12-.63l-2.03-1.58zM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5z"/></svg>',
+      "<span>Settings</span>",
+    ].join("");
+    return settingsButton;
   }
 
   function createButtonHTML() {
     return [
       '<span class="sts-button-main">',
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>',
-      "<span>Search the Ships</span>",
+      '<span class="sts-button-label">Search the Ships</span>',
       "</span>",
-      '<button type="button" class="sts-settings-button" aria-label="Open Search the Ships settings" title="Open settings">',
-      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19.14 12.94a7.43 7.43 0 0 0 .05-.94 7.43 7.43 0 0 0-.05-.94l2.03-1.58a.5.5 0 0 0 .12-.63l-1.92-3.32a.5.5 0 0 0-.61-.22l-2.39.96a7.1 7.1 0 0 0-1.63-.94l-.36-2.54A.5.5 0 0 0 13.9 2h-3.8a.5.5 0 0 0-.49.41l-.36 2.54c-.58.22-1.12.52-1.63.94l-2.39-.96a.5.5 0 0 0-.61.22L2.7 8.97a.5.5 0 0 0 .12.63l2.03 1.58a7.43 7.43 0 0 0-.05.94c0 .32.02.63.05.94l-2.03 1.58a.5.5 0 0 0-.12.63l1.92 3.32a.5.5 0 0 0 .61.22l2.39-.96c.5.4 1.05.73 1.63.94l.36 2.54a.5.5 0 0 0 .49.41h3.8a.5.5 0 0 0 .49-.41l.36-2.54c.58-.22 1.12-.52 1.63-.94l2.39.96a.5.5 0 0 0 .61-.22l1.92-3.32a.5.5 0 0 0-.12-.63l-2.03-1.58zM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5z"/></svg>',
-      "</button>",
     ].join("");
   }
 
@@ -1039,7 +1124,10 @@
     button.className = "sts-button";
     button.innerHTML = createButtonHTML();
 
-    const settingsButton = button.querySelector(".sts-settings-button");
+    const dropdown = createDropdownMenu(bookTitle);
+    button.appendChild(dropdown);
+
+    const settingsButton = dropdown.querySelector(".sts-settings-button");
     if (settingsButton) {
       if (typeof gmc !== "undefined" && typeof gmc.open === "function") {
         settingsButton.addEventListener("click", (event) => {
@@ -1049,11 +1137,10 @@
         });
       } else {
         settingsButton.style.display = "none";
+        const settingsDivider = dropdown.querySelector(".sts-settings-divider");
+        if (settingsDivider) settingsDivider.style.display = "none";
       }
     }
-
-    const dropdown = createDropdownMenu(bookTitle);
-    button.appendChild(dropdown);
 
     buttonContainer.appendChild(button);
     document.body.appendChild(buttonContainer);

@@ -1,14 +1,14 @@
 # Search the Ships
 
-A userscript that adds a beautifully designed button to book-related websites to search the current book title on various archives, with a centralized status indicator. The script is fully responsive and allows searching with various options like EPUBs and PDFs.
+A userscript that adds a small, unobtrusive button to book-related websites to search the current book title on various archives, with a centralized status indicator. The script is fully responsive and allows searching with various options like EPUBs and PDFs.
 
 ## Features
 
-- **Fixed Position Button**: Adds a clickable button in the bottom-right corner of supported pages.
+- **Fixed Position Button**: Adds a compact icon button in the bottom-right corner of supported pages that expands to show its label on hover.
 - **Dropdown Menu**: Hover to reveal a dropdown with available search sites.
 - **Submenus**: Each search site includes options for various search functions (e.g., All Files, EPUBs, PDFs) for better filtering.
 - **Centralized Status Indicators**: One indicator per site checks reachability in real-time.
-- **Built-in Settings**: The main button includes a settings control that opens GM_config for vertical/horizontal position, vertical/horizontal margin (px), and button colors.
+- **Built-in Settings**: The bottom of the dropdown includes a settings row that opens GM_config for vertical/horizontal position, vertical/horizontal margin (px), and button colors.
 - **Responsive Design**: Adjusts for smaller screens (e.g., mobile devices).
 - **Automatic Title Extraction**: Parses book titles from page elements or page title as fallback.
 
@@ -46,9 +46,9 @@ Each site links directly to the search results for the extracted book title.
 ## Usage
 
 - Navigate to a book page on one of the supported websites.
-- The "Search the Ships" button appears in the bottom-right corner by default (fully configurable in settings).
+- The "Search the Ships" icon appears in the bottom-right corner by default (fully configurable in settings); hover it to expand the label.
 - Hover over the button to open the dropdown menu.
-- Click the gear icon on the right side of the main button to open settings.
+- Click the gear icon at the bottom of the menu to open settings.
 - Hover over a search site to reveal submenus with various options (e.g., All Files, EPUBs, PDFs).
 - Click a link to open search results in a new tab.
 - Centralized status indicators show site availability.

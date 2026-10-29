@@ -32,6 +32,9 @@ function runScript(dom, { gmConfig = false, configValues = {} } = {}) {
   if (gmConfig) {
     w.GM_config = function (opts) {
       w.GM_config.captured = opts;
+      const sets = {};
+      w.GM_config.sets = sets;
+      w.GM_config.saved = false;
       // Fire init asynchronously so `gmc = new GM_config(...)` has completed
       // by the time the init handler calls startScript().
       setTimeout(() => {
@@ -40,7 +43,14 @@ function runScript(dom, { gmConfig = false, configValues = {} } = {}) {
         }
       }, 0);
       return {
-        get: (name) => (name in configValues ? configValues[name] : undefined),
+        get: (name) =>
+          name in sets ? sets[name] : (name in configValues ? configValues[name] : undefined),
+        set: (name, value) => {
+          sets[name] = value;
+        },
+        save: () => {
+          w.GM_config.saved = true;
+        },
         open: () => {},
       };
     };
@@ -205,6 +215,65 @@ test("renders both Mobilism entries and keeps GM_config config keys distinct", a
   assert.ok(fields.enable_Mobilism);
   assert.ok(fields.enable_Mobilism_audiobook);
   assert.equal(fields.enable_Mobilism_audiobook.label, "Mobilism (Audiobooks)");
+});
+
+test("resets saved button colors once when upgrading to the redesigned button", async () => {
+  const dom = setup(GOODREADS);
+  const w = runScript(dom, {
+    gmConfig: true,
+    configValues: {
+      // Customized colors saved against the old gradient design.
+      buttonColorStart: "#2B2B2B",
+      buttonColorEnd: "#4A4A4A",
+      buttonColorText: "#EEEEEE",
+    },
+  });
+  await settle();
+
+  assert.deepStrictEqual(
+    { ...w.GM_config.sets },
+    {
+      buttonColorStart: "#FFFFFF",
+      buttonColorEnd: "#F4F5F7",
+      buttonColorText: "#374151",
+      configRevision: 2,
+    },
+    "saved colors are reset to the neutral palette and the revision is stamped",
+  );
+  assert.equal(w.GM_config.saved, true, "migrated colors are persisted");
+
+  const css = w.document.getElementById("sts-styles").textContent;
+  assert.ok(css.includes("linear-gradient(135deg, #FFFFFF 0%, #F4F5F7 100%)"));
+});
+
+test("keeps colors that were chosen after the redesign", async () => {
+  const dom = setup(GOODREADS);
+  const w = runScript(dom, {
+    gmConfig: true,
+    configValues: {
+      configRevision: 2,
+      buttonColorStart: "#5A67D8",
+      buttonColorEnd: "#111111",
+      buttonColorText: "#FFFFFF",
+    },
+  });
+  await settle();
+
+  assert.deepStrictEqual({ ...w.GM_config.sets }, {}, "no colors rewritten");
+  assert.equal(w.GM_config.saved, false);
+
+  const css = w.document.getElementById("sts-styles").textContent;
+  assert.ok(css.includes("#111111"), "custom end color still drives the gradient");
+});
+
+test("exposes a hidden revision field that is excluded from the panel", async () => {
+  const w = runScript(setup(GOODREADS), { gmConfig: true });
+  await settle();
+
+  const field = w.GM_config.captured.fields.configRevision;
+  assert.ok(field, "expected a configRevision field");
+  assert.equal(field.type, "hidden");
+  assert.equal(field.label, undefined, "no label means no visible row");
 });
 
 test("adds a blank domain field for every search engine", async () => {
